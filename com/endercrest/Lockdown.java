@@ -58,9 +58,19 @@ public class Lockdown extends JavaPlugin {
 							p.sendMessage(lockdown);
 							p.sendMessage(prefix + ChatColor.GREEN + "Lockdown activated. Level: " + level);
 							for(Player OP : getServer().getOnlinePlayers()){
-								if(!OP.hasPermission("lock." + level)){
+								boolean kick = true;
+								for(int i = 0; i <= level; i++){
+									if(p.hasPermission("lock.*")){
+										kick = false;
+									}
+									if(p.hasPermission("lock." + i)){
+										kick = false;
+									}
+								}
+								if(kick){
 									OP.kickPlayer(ChatColor.translateAlternateColorCodes('&', getConfig().getString(lockdown + ".message")));
-								}else if(OP != p){
+								}
+								if(OP != p){
 									OP.sendMessage(prefix + ChatColor.GREEN + "A lockdown has been enabled.");
 								}
 							}
