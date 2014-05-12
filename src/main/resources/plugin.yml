@@ -1,0 +1,19 @@
+name: Lockdown
+main: com.endercrest.lockdown.Lockdown
+version: ${project.version}
+authors: [tcvs]
+description: Allows you to lock down the server.
+permissions:
+    lock.*:
+        description: Can access server whenever
+        default: op
+        children:
+            lock.set: true
+    lock.set:
+        description: Use lock command
+        default: op
+commands:
+   lock:
+      description: Use Lock command
+      permission: lock.set
+      aliases: [lock, lockdown, ld]
