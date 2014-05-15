@@ -1,3 +1,5 @@
 full:
   message: '&cServer is locked for everyone'
   level: 0
+currentStatus: ''
+color-logs: true

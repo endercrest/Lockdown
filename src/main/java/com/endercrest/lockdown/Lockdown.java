@@ -18,13 +18,23 @@ public class Lockdown extends JavaPlugin {
     @Override
     public void onEnable(){
         this.saveDefaultConfig();
+        loadConfiguration();
         getServer().getPluginManager().registerEvents(new LoginEvent(this), this);
         log("&av" + this.getDescription().getVersion() + " by EnderCrest enabled");
+        startUpLockdown();
     }
 
     @Override
     public void onDisable(){
 
+    }
+
+    public void loadConfiguration(){
+        if (!getConfig().contains("color-logs")){
+            getConfig().addDefault("color-logs", true);
+        }
+        getConfig().options().copyDefaults(true);
+        saveConfig();
     }
 
     /**
@@ -46,49 +56,92 @@ public class Lockdown extends JavaPlugin {
         }
     }
 
+    public void startUpLockdown(){
+        String ld = getConfig().getString("currentStatus");
+
+        if(getConfig().isSet(ld)){
+            lockdown = ld;
+            level = getConfig().getInt(lockdown + ".level", -1);
+            log("&aLockdown activated: " + lockdown + "!");
+            kickPlayers();
+        }else if(!ld.equalsIgnoreCase("") || !ld.equalsIgnoreCase(null)) {
+            log("&cThere was an invalid lockdown in current status. NO LOCKDOWN has been activated.");
+        }
+    }
+
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args){
-        if(cmd.getName().equalsIgnoreCase("lock")){
-            if(sender instanceof Player){
-                Player p = (Player)sender;
-                    //Message for how to use command
-                    if(args.length == 0){
+        if(cmd.getName().equalsIgnoreCase("lock")) {
+            if (sender instanceof Player) {
+                Player p = (Player) sender;
+                //Message for how to use command
+                if (args.length == 0) {
+                    p.sendMessage(prefix + ChatColor.GREEN + "/lock (disable/status/[type]");
+                    return true;
+                } else if (args.length == 1) {
+                    if (args[0].equalsIgnoreCase("disable")) {
+                        return disableLockDown();
+                    } else if (args[0].equalsIgnoreCase("status")) {
+                        if (level == -1) {
+                            p.sendMessage(prefix + ChatColor.GREEN + "The server is not in lockdown");
+                        } else {
+                            p.sendMessage(prefix + "The server is locked down in " + lockdown + ". The security level is: " + level);
+                        }
+                        return true;
+                    } else if (args[0].equalsIgnoreCase("help")) {
                         p.sendMessage(prefix + ChatColor.GREEN + "/lock (disable/status/[type]");
                         return true;
-                    }else if(args.length == 1){
-                        if(args[0].equalsIgnoreCase("disable")){
-                            return disableLockDown();
-                        }else if(args[0].equalsIgnoreCase("status")){
-                            if(level == -1){
-                                p.sendMessage(prefix + ChatColor.GREEN + "The server is not in lockdown");
-                            }else{
-                                p.sendMessage(prefix + "The is locked down in " + lockdown + ". The security level is: " + level);
-                            }
-                            return true;
-                        }else if(args[0].equalsIgnoreCase("help")){
-                            //TODO Create a help menu.
-                            return true;
-                        }else if(this.getConfig().contains(args[0])){
-                            lockdown = args[0];
-                            level = this.getConfig().getInt(lockdown + ".level");
-                            p.sendMessage(prefix + ChatColor.GREEN + "Lockdown activated. Level: " + level);
-                            kickPlayer(p);
-                        }else{
-                            p.sendMessage(prefix + ChatColor.RED + "This is not a valid lockdown.");
-                            return true;
-                        }
-                    }else{
-                        p.sendMessage(prefix + ChatColor.RED + "You have to many arguments!");
+                    } else if (this.getConfig().contains(args[0])) {
+                        lockdown = args[0];
+                        level = this.getConfig().getInt(lockdown + ".level");
+                        getConfig().set("currentStatus", lockdown);
+                        saveConfig();
+                        p.sendMessage(prefix + ChatColor.GREEN + "Lockdown activated. Level: " + level);
+                        kickPlayers(p);
+                    } else {
+                        p.sendMessage(prefix + ChatColor.RED + "This is not a valid lockdown.");
                         return true;
                     }
+                } else {
+                    p.sendMessage(prefix + ChatColor.RED + "You have to many arguments!");
+                    return true;
                 }
-            }else{
-                sender.sendMessage(ChatColor.RED + "Please send as player. This option is coming soon.");
-                return true;
+            }else {
+                if (args.length == 0) {
+                    log("&a/lock (disable/status/[type]");
+                    return true;
+                } else if (args.length == 1) {
+                    if (args[0].equalsIgnoreCase("disable")) {
+                        return disableLockDown();
+                    } else if (args[0].equalsIgnoreCase("status")) {
+                        if (level == -1) {
+                            log("&aThe server is not in lockdown");
+                        } else {
+                            log("&aThe server is locked down in " + lockdown + ". The security level is " + level);
+                        }
+                        return true;
+                    } else if (getConfig().contains(args[0])) {
+                        lockdown = args[0];
+                        level = this.getConfig().getInt(lockdown + ".level");
+                        getConfig().set("currentStatus", lockdown);
+                        saveConfig();
+                        log("&aLockdown activated. Level: " + level);
+                        kickPlayers();
+                        return true;
+                    } else {
+                        log("&cThis is either an invalid lockdown or wrong argument");
+                        return true;
+                    }
+                } else {
+                    log("&cYou have too many arguments");
+                    return true;
+                }
             }
+            return true;
+        }
         return true;
     }
 
-    public void kickPlayer(Player p){
+    public void kickPlayers(Player p){
         for(Player OP : getServer().getOnlinePlayers()){
             boolean kick = true;
             for(int i = 0; i <= level; i++){
@@ -108,6 +161,25 @@ public class Lockdown extends JavaPlugin {
         }
     }
 
+    public void kickPlayers(){
+        for(Player OP : getServer().getOnlinePlayers()){
+            boolean kick = true;
+            for(int i = 0; i <= level; i++){
+                if(OP.hasPermission("lock.*")){
+                    kick = false;
+                }
+                if(OP.hasPermission("lock." + i)){
+                    kick = false;
+                }
+            }
+            if(kick){
+                OP.kickPlayer(ChatColor.translateAlternateColorCodes('&', getConfig().getString(lockdown + ".message")));
+            }else{
+                OP.sendMessage(prefix + ChatColor.GREEN + "A lockdown has been enabled.");
+            }
+        }
+    }
+
     public boolean disableLockDown(){
         for(Player OP : getServer().getOnlinePlayers()){
             if(level != -1){
@@ -116,8 +188,14 @@ public class Lockdown extends JavaPlugin {
                 OP.sendMessage(prefix + ChatColor.RED + "The server was not in lockdown.");
             }
         }
+        if(level != -1){
+            log("&aLockdown has been disabled!");
+        }else{
+            log("&cThe server was not in lockdown.");
+        }
         level = -1;
         lockdown = null;
+        getConfig().set("currentStatus", null);
         return true;
     }
 }
