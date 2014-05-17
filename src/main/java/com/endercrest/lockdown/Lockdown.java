@@ -196,6 +196,7 @@ public class Lockdown extends JavaPlugin {
         level = -1;
         lockdown = null;
         getConfig().set("currentStatus", null);
+        saveConfig();
         return true;
     }
 }
